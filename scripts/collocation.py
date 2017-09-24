@@ -61,7 +61,7 @@ class Collocation_find():
         scored = finder.score_ngrams(trigram_measures.poisson_stirling)
 
         res = []
-        for i in range(20):
-            res.append(' '.join(scored[0:20][i][0]))
+        for i in range(min(20, len(scored))):
+            res.append(' '.join(scored[0:min(20, len(scored))][i][0]))
 
         return res
