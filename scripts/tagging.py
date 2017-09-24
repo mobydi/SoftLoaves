@@ -62,7 +62,43 @@ class PhrasesExtractor:
         else:
             return -1, 0
 
-    def predict(self, df):
+    def filter_phrases_old(self, extracted_keywords,
+                           test_product_category_name):
+        assighned_phrases = dict()
+        for sent in extracted_keywords:
+            for word in self.tokenize(sent):
+                idx, current_score = self.get_category_keyword_score(
+                    test_product_category_name, word)
+                if idx == -1:
+                    continue
+                if idx in assighned_phrases:
+                    if current_score > assighned_phrases[idx][1]:
+                        assighned_phrases[idx] = (sent, current_score)
+                else:
+                    assighned_phrases[idx] = (sent, current_score)
+        return assighned_phrases
+
+    def filter_phrases(self, extracted_keywords, test_product_category_name):
+        assighned_phrases = dict()
+        for sent in extracted_keywords:
+            if 'купил' in sent:
+                continue
+            keywords = [
+                self.get_category_keyword_score(test_product_category_name,
+                                                word) for word in
+                self.tokenize(sent)]
+            idx, current_score = \
+            sorted(keywords, key=lambda x: x[1], reverse=True)[0]
+            if idx == -1:
+                continue
+            if idx in assighned_phrases:
+                if current_score > assighned_phrases[idx][1]:
+                    assighned_phrases[idx] = (sent, current_score)
+            else:
+                assighned_phrases[idx] = (sent, current_score)
+        return assighned_phrases
+
+    def predict(self, df, top_n=5):
         test_product_all_text = '.'.join(list(df['TEXT']))
         test_product_category_name = df['CATEGORY_NAME'].iloc[0]
 
@@ -72,7 +108,14 @@ class PhrasesExtractor:
             matches = self.minhash.query(self.get_hash(tokenized_sent))
             if len(matches) > 0 and len(tokenized_sent) > 1:
                 extracted_keywords.append(sent.strip())
-        return extracted_keywords
+        if top_n != None and len(extracted_keywords) > top_n:
+            filtered_phrases = self.filter_phrases(extracted_keywords,
+                                                   test_product_category_name)
+            filtered_phrases = [filtered_phrases[key][0] for key in
+                                sorted(filtered_phrases.keys())]
+            return filtered_phrases[:top_n]
+        else:
+            return extracted_keywords
 
 
 def tag_init(path):
