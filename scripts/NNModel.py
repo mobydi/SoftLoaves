@@ -1,4 +1,3 @@
-from sklearn.preprocessing import OneHotEncoder
 from keras.preprocessing.sequence import pad_sequences
 import keras
 from keras.models import load_model
@@ -7,13 +6,13 @@ from keras.models import Sequential
 from keras.layers import Dense
 from keras.layers import GRU, Bidirectional, Dropout, SpatialDropout1D, \
     Embedding
-from keras.models import Model
+from os.path import join
+import pickle
 
-
-class NNModel():
+class NNModel:
     def __init__(self, model_path, tokenizer, input_length, y_transformer=None,
                  fit_epochs=0, max_features=20000,
-                 regr_path="./pretrain/small_regr.h5"):
+                 regr_path="small_regr.h5"):
         self.model_path = model_path
         self.tokenizer = tokenizer
         self.input_length = input_length
@@ -115,3 +114,13 @@ class NNModel():
         self.model_regr = load_model(self.regr_path)
         return self
 
+
+def nn_init(model_path: str):
+    # define some relative paths for pickled objects
+    tokenizer = pickle.load(open(join(model_path, 'tokenizer.pkl'), 'rb'))
+    y_transformer = pickle.load(
+        open(join(model_path, 'y_transformer.pkl'), 'rb'))
+    nn_model = NNModel(join(model_path, 'test.h5'), tokenizer, input_length=75,
+                       y_transformer=y_transformer, fit_epochs=0,
+                       regr_path=join(model_path, 'small_regr.h5'))
+    return nn_model.define_for_flow()
